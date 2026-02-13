@@ -189,7 +189,9 @@
     const TILE_H = 28;
     const TILE_DEPTH = 14;
     const BALL_RADIUS = 10;
-    const MOVE_SPEED = 3;
+    const START_SPEED = 1.5;
+    const MAX_MOVE_SPEED = 4;
+    const SPEED_RAMP = 0.03; // speed increase per tile
 
     let state = 'start';
     let tiles = [];
@@ -264,11 +266,30 @@
       const path = [];
       let gx = startGX;
       let gy = startGY;
+      let lastDir = null;
+      let runLength = 0;
 
       for (let i = 0; i < count; i++) {
         path.push({ gx, gy, scored: false });
-        // Randomly go right (gx+1) or down (gy+1) in grid space
-        if (Math.random() < 0.5) {
+
+        // Early tiles: longer straight runs so the player can learn
+        // Later tiles: more frequent direction changes
+        const minRun = i < 10 ? 4 : i < 30 ? 3 : 1;
+        let dir;
+        if (runLength < minRun && lastDir !== null) {
+          dir = lastDir;
+        } else {
+          dir = Math.random() < 0.5 ? 'right' : 'down';
+        }
+
+        if (dir === lastDir) {
+          runLength++;
+        } else {
+          runLength = 1;
+          lastDir = dir;
+        }
+
+        if (dir === 'right') {
           gx += 1;
         } else {
           gy += 1;
@@ -349,8 +370,9 @@
 
       if (state !== 'playing') return;
 
-      // Move ball forward
-      ball.progress += MOVE_SPEED / 60;
+      // Move ball forward — speed ramps up over time
+      const currentSpeed = Math.min(START_SPEED + ball.tileIndex * SPEED_RAMP, MAX_MOVE_SPEED);
+      ball.progress += currentSpeed / 60;
 
       if (ball.progress >= 1) {
         ball.progress = 0;
@@ -550,6 +572,11 @@
       } else if (state === 'playing' && !falling) {
         // Switch direction
         direction *= -1;
+      } else if (state === 'playing' && falling) {
+        // Allow restart during fall animation
+        falling = false;
+        gameOver();
+        gameOverScreen.style.display = 'flex';
       } else if (state === 'gameover') {
         gameOverScreen.style.display = 'none';
         state = 'playing';
