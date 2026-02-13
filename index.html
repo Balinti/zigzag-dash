@@ -431,6 +431,8 @@
       }
     }
 
+    let gameOverTimer = null;
+
     function gameOver() {
       state = 'gameover';
       if (score > best) {
@@ -439,8 +441,11 @@
       }
       finalScoreEl.textContent = score;
       bestScoreEl.textContent = `Best: ${best}`;
-      setTimeout(() => {
-        gameOverScreen.style.display = 'flex';
+      if (gameOverTimer) clearTimeout(gameOverTimer);
+      gameOverTimer = setTimeout(() => {
+        if (state === 'gameover') {
+          gameOverScreen.style.display = 'flex';
+        }
       }, 300);
     }
 
@@ -578,6 +583,7 @@
         gameOver();
         gameOverScreen.style.display = 'flex';
       } else if (state === 'gameover') {
+        if (gameOverTimer) { clearTimeout(gameOverTimer); gameOverTimer = null; }
         gameOverScreen.style.display = 'none';
         state = 'playing';
         initGame();
